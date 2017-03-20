@@ -1,0 +1,200 @@
+---
+title: "Deep Learning"
+author: "Jeremie"
+date: "2016/12/12"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: ["style_remark_vanilla.css"]
+    seal: false
+    nature:
+      ratio: '16:9'
+      highlightStyle: magula
+      highlightLines: true
+      countIncrementalSlides: true
+---
+
+```{r setup, include=FALSE}
+#options(htmltools.dir.version = FALSE)
+require("dplyr")
+require("DT")
+require("plotly")
+require("scales")
+require("mxnet")
+
+```
+
+
+class: center, middle, inverse, glacier
+
+#Deep Learning
+
+###avec
+
+![](data/mxnet_logo_233_80.jpg)
+
+<br> 
+<br>
+
+<div class="title-author">
+
+par 
+
+<br>
+
+Jérémie Desgagné-Bouchard
+
+<br>
+
+27 mai 2017
+
+</div>
+
+---
+
+##Architecture symbolique
+
+La composition symbolique du modèle permet de définir:  
+  - Ses entrants et les variables réponse  
+  - Sa structure  
+  - Sa fonction objective (RMSE, MAE, Softmax, ...)  
+
+```{r, echo=T, include=FALSE}
+data<- mx.symbol.Variable(name = "data")
+label<- mx.symbol.Variable(name = "label")
+label<- mx.symbol.identity(label, name = "label")
+weight1<- mx.symbol.Variable(name = "weight1")
+weight1<- mx.symbol.identity(weight1, name = "weight1")
+bias1<- mx.symbol.Variable(name = "bias1")
+bias1<- mx.symbol.identity(bias1, name = "bias1")
+final<- mx.symbol.FullyConnected(data=data, num_hidden=1, weight=weight1, bias=bias1, name = "final")
+perte<- mx.symbol.LinearRegressionOutput(data=final, label=label, name = "perte_lineaire")
+```
+
+```{r, echo=FALSE, fig.align='center'}
+graph.viz(perte, shape = c(10,64), type = "graph", direction = "LR", graph.width.px = 500, graph.height.px = 240)
+```
+
+```{r, echo=T}
+data<- mx.symbol.Variable(name = "data")
+final<- mx.symbol.FullyConnected(data=data, num_hidden=1, name = "final")
+perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
+```
+
+---
+
+##Architecture symbolique - de la régression au deep learning
+
+Aucun calcul n'est réalisé à cette étape. Seule la structure du modèle est définie afin de déterminer les dépendances de calculs aux fins d'optimisation de l'exécution et la gestion de la mémoire. 
+
+```{r, include=F}
+data<- mx.symbol.Variable(name = "data")
+weight1<- mx.symbol.Variable(name = "weight1")
+weight1<- mx.symbol.identity(weight1, name = "weight1")
+
+fc1<- mx.symbol.FullyConnected(data=data, num_hidden=4, weight=weight1, name = "fc_1")
+act1<- mx.symbol.Activation(data=fc1, act_type="relu", name = "act_1")
+
+weight2<- mx.symbol.Variable(name = "weight2")
+weight2<- mx.symbol.identity(weight2, name = "weight2")
+
+final<- mx.symbol.FullyConnected(data=act1, num_hidden=1, weight=weight2, name = "final")
+perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
+```
+
+```{r, echo=FALSE, fig.align='left'}
+graph.viz(perte, shape = c(10,64), type = "graph", direction = "LR", graph.width.px = 800, graph.height.px = 240)
+```
+
+```{r, echo=T}
+data<- mx.symbol.Variable(name = "data")
+fc1<- mx.symbol.FullyConnected(data=data, num_hidden=4, name = "fc_1")
+act1<- mx.symbol.Activation(data=fc1, act_type="relu", name = "act_1")
+final<- mx.symbol.FullyConnected(data=act1, num_hidden=1, name = "final")
+perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
+```
+
+
+---
+
+##Du symbole au calcul
+
+Une fois la structure du modèle définie, il reste à définir les composantes qui permettront à l'algorithme de s'exécuter sur les données réelles.
+
+- Itérateur de données: module dont l'exécution renvoie les données entrantes les variables réponse. 
+
+- Optimiseur: module qui définit la façon dont les paramètres sont mis à jour à chaque itération. 
+
+- Exécuteur: instance qui exécute les calculs. Il peut y en avoir un seul (CPU) ou plusieurs (multi-GPU).  
+
+- Initialisation: spécifie la manière dont sont assignés les paramètres avant l'exécution de l'optimisation: 
+  - Normal  
+  - Uniforme  
+  - Xavier
+
+
+---
+
+##Du symbole au calcul - example d'application sur une régression
+
+
+
+---
+
+##Itérateur de données
+
+La tâche de l'itérateur est de fournir aux exécuteurs les données nécessaires aux calculs pour chacune des itérations sur les mini-batch. 
+
+Les itérateurs pré-définis sont: 
+
+  - mx.io.arrayiter: itérateur prenant un objet array comme entrée  
+  - mx.io.CSVIter: lecture d'un CSV  
+  - mx.io.ImageRecordIter: lecture d'images en format binaire 
+  
+Des itérateurs personnalisés peuvent être construits directement en R, leur performance dépend des fonctionnalités sous-jacentes. 
+
+À noter que l'utilisation d'itérateurs sur des CSV ou images permet d'éviter la contrainte de charger la totalité des données en mémoire.  
+
+
+---
+
+##Sélection de l'optimiseur
+
+![](data/optimizer1.gif)
+
+Crédit: [Sebastian Ruder](http://sebastianruder.com/optimizing-gradient-descent/)
+
+---
+
+##Exécution sur plusieurs instances (multi_GPU)
+
+![](data/multi_device_execution.png)
+
+Crédit: [mxnet.io](http://mxnet.io/architecture/note_engine.html)
+
+---
+
+##Régression linéaire
+
+Boston dataset?
+
+
+---
+
+##Réutilisation et ajustement de modèles pré-entraînés
+
+Une collection de modèles est disponible dans le [zoo](http://mxnet.io/model_zoo/index.html)
+
+Un utilitaire existe également pour convertir des modèles développés sous Caffe. 
+
+Exemple: Chat vs Chien avec Resnet [Microsoft 2015](reference needed)
+
+
+
+---
+
+##Pour pousser plus loin
+
+- Adversial model
+
+- Reinforcement learning

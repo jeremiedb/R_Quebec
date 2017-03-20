@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Deep Learning</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Jeremie" />
+    <script src="libs/htmlwidgets-0.8/htmlwidgets.js"></script>
+    <script src="libs/viz-0.3/viz.js"></script>
+    <link href="libs/DiagrammeR-styles-0.2/styles.css" rel="stylesheet" />
+    <script src="libs/grViz-binding-0.9.0/grViz.js"></script>
+    <link rel="stylesheet" href="style_remark_vanilla.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+
+
+
+class: center, middle, inverse, glacier
+
+#Deep Learning
+
+###avec
+
+![](data/mxnet_logo_233_80.jpg)
+
+&lt;br&gt; 
+&lt;br&gt;
+
+&lt;div class="title-author"&gt;
+
+par 
+
+&lt;br&gt;
+
+Jérémie Desgagné-Bouchard
+
+&lt;br&gt;
+
+27 mai 2017
+
+&lt;/div&gt;
+
+---
+
+##Architecture symbolique
+
+La composition symbolique du modèle permet de définir:  
+  - Ses entrants et les variables réponse  
+  - Sa structure  
+  - Sa fonction objective (RMSE, MAE, Softmax, ...)  
+
+
+
+<div id="htmlwidget-92f75e04181294874ce7" style="width:500px;height:240px;" class="grViz html-widget"></div>
+<script type="application/json" data-for="htmlwidget-92f75e04181294874ce7">{"x":{"diagram":"digraph {\n\ngraph [layout = \"dot\",\n       rankdir = \"LR\"]\n\n\n  \"1\" [label = \"data\ndata\", shape = \"oval\", penwidth = \"2\", color = \"#8dd3c7\", style = \"filled\", fillcolor = \"#8DD3C7FF\"] \n  \"2\" [label = \"_copy\nweight1\", shape = \"box\", penwidth = \"2\", color = \"#fccde5\", style = \"filled\", fillcolor = \"#FCCDE5FF\"] \n  \"3\" [label = \"_copy\nbias1\", shape = \"box\", penwidth = \"2\", color = \"#fccde5\", style = \"filled\", fillcolor = \"#FCCDE5FF\"] \n  \"4\" [label = \"FullyConnected\nfinal\n1\", shape = \"box\", penwidth = \"2\", color = \"#fb8072\", style = \"filled\", fillcolor = \"#FB8072FF\"] \n  \"5\" [label = \"_copy\nlabel\", shape = \"box\", penwidth = \"2\", color = \"#fccde5\", style = \"filled\", fillcolor = \"#FCCDE5FF\"] \n  \"6\" [label = \"LinearRegressionOutput\nperte_lineaire\", shape = \"box\", penwidth = \"2\", color = \"#b3de69\", style = \"filled\", fillcolor = \"#B3DE69FF\"] \n\"1\"->\"4\" [id = \"1\", color = \"black\", label = \"10X64\"] \n\"2\"->\"4\" [id = \"2\", color = \"black\", label = \"10X1\"] \n\"3\"->\"4\" [id = \"3\", color = \"black\", label = \"1\"] \n\"4\"->\"6\" [id = \"4\", color = \"black\", label = \"1X64\"] \n\"5\"->\"6\" [id = \"5\", color = \"black\", label = \"64\"] \n}","config":{"engine":null,"options":null}},"evals":[],"jsHooks":[]}</script>
+
+
+```r
+data&lt;- mx.symbol.Variable(name = "data")
+final&lt;- mx.symbol.FullyConnected(data=data, num_hidden=1, name = "final")
+perte&lt;- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
+```
+
+---
+
+##Architecture symbolique - de la régression au deep learning
+
+Aucun calcul n'est réalisé à cette étape. Seule la structure du modèle est définie afin de déterminer les dépendances de calculs aux fins d'optimisation de l'exécution et la gestion de la mémoire. 
+
+
+
+<div id="htmlwidget-3df1b627208b8640860d" style="width:800px;height:240px;" class="grViz html-widget"></div>
+<script type="application/json" data-for="htmlwidget-3df1b627208b8640860d">{"x":{"diagram":"digraph {\n\ngraph [layout = \"dot\",\n       rankdir = \"LR\"]\n\n\n  \"1\" [label = \"data\ndata\", shape = \"oval\", penwidth = \"2\", color = \"#8dd3c7\", style = \"filled\", fillcolor = \"#8DD3C7FF\"] \n  \"2\" [label = \"_copy\nweight1\", shape = \"box\", penwidth = \"2\", color = \"#fccde5\", style = \"filled\", fillcolor = \"#FCCDE5FF\"] \n  \"3\" [label = \"FullyConnected\nfc_1\n4\", shape = \"box\", penwidth = \"2\", color = \"#fb8072\", style = \"filled\", fillcolor = \"#FB8072FF\"] \n  \"4\" [label = \"Activation\nact_1\nrelu\", shape = \"box\", penwidth = \"2\", color = \"#ffffb3\", style = \"filled\", fillcolor = \"#FFFFB3FF\"] \n  \"5\" [label = \"_copy\nweight2\", shape = \"box\", penwidth = \"2\", color = \"#fccde5\", style = \"filled\", fillcolor = \"#FCCDE5FF\"] \n  \"6\" [label = \"FullyConnected\nfinal\n1\", shape = \"box\", penwidth = \"2\", color = \"#fb8072\", style = \"filled\", fillcolor = \"#FB8072FF\"] \n  \"7\" [label = \"LinearRegressionOutput\nperte_lineaire\", shape = \"box\", penwidth = \"2\", color = \"#b3de69\", style = \"filled\", fillcolor = \"#B3DE69FF\"] \n\"1\"->\"3\" [id = \"1\", color = \"black\", label = \"10X64\"] \n\"2\"->\"3\" [id = \"2\", color = \"black\", label = \"10X4\"] \n\"3\"->\"4\" [id = \"3\", color = \"black\", label = \"4X64\"] \n\"4\"->\"6\" [id = \"4\", color = \"black\", label = \"4X64\"] \n\"5\"->\"6\" [id = \"5\", color = \"black\", label = \"4X1\"] \n\"6\"->\"7\" [id = \"6\", color = \"black\", label = \"1X64\"] \n}","config":{"engine":null,"options":null}},"evals":[],"jsHooks":[]}</script>
+
+
+```r
+data&lt;- mx.symbol.Variable(name = "data")
+fc1&lt;- mx.symbol.FullyConnected(data=data, num_hidden=4, name = "fc_1")
+act1&lt;- mx.symbol.Activation(data=fc1, act_type="relu", name = "act_1")
+final&lt;- mx.symbol.FullyConnected(data=act1, num_hidden=1, name = "final")
+perte&lt;- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
+```
+
+
+---
+
+##Du symbole au calcul
+
+Une fois la structure du modèle définie, il reste à définir les composantes qui permettront à l'algorithme de s'exécuter sur les données réelles.
+
+- Itérateur de données: module dont l'exécution renvoie les données entrantes les variables réponse. 
+
+- Optimiseur: module qui définit la façon dont les paramètres sont mis à jour à chaque itération. 
+
+- Exécuteur: instance qui exécute les calculs. Il peut y en avoir un seul (CPU) ou plusieurs (multi-GPU).  
+
+- Initialisation: spécifie la manière dont sont assignés les paramètres avant l'exécution de l'optimisation: 
+  - Normal  
+  - Uniforme  
+  - Xavier
+
+
+---
+
+##Du symbole au calcul - example d'application sur une régression
+
+
+
+---
+
+##Itérateur de données
+
+La tâche de l'itérateur est de fournir aux exécuteurs les données nécessaires aux calculs pour chacune des itérations sur les mini-batch. 
+
+Les itérateurs pré-définis sont: 
+
+  - mx.io.arrayiter: itérateur prenant un objet array comme entrée  
+  - mx.io.CSVIter: lecture d'un CSV  
+  - mx.io.ImageRecordIter: lecture d'images en format binaire 
+  
+Des itérateurs personnalisés peuvent être construits directement en R, leur performance dépend des fonctionnalités sous-jacentes. 
+
+À noter que l'utilisation d'itérateurs sur des CSV ou images permet d'éviter la contrainte de charger la totalité des données en mémoire.  
+
+
+---
+
+##Sélection de l'optimiseur
+
+![](data/optimizer1.gif)
+
+Crédit: [Sebastian Ruder](http://sebastianruder.com/optimizing-gradient-descent/)
+
+---
+
+##Exécution sur plusieurs instances (multi_GPU)
+
+![](data/multi_device_execution.png)
+
+Crédit: [mxnet.io](http://mxnet.io/architecture/note_engine.html)
+
+---
+
+##Régression linéaire
+
+Boston dataset?
+
+
+---
+
+##Réutilisation et ajustement de modèles pré-entraînés
+
+Une collection de modèles est disponible dans le [zoo](http://mxnet.io/model_zoo/index.html)
+
+Un utilitaire existe également pour convertir des modèles développés sous Caffe. 
+
+Exemple: Chat vs Chien avec Resnet [Microsoft 2015](reference needed)
+
+
+
+---
+
+##Pour pousser plus loin
+
+- Adversial model
+
+- Reinforcement learning
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"ratio": "16:9",
+"highlightStyle": "magula",
+"highlightLines": true,
+"countIncrementalSlides": true
+});
+if (window.HTMLWidgets) slideshow.on('showSlide', function (slide) {setTimeout(function() {window.dispatchEvent(new Event('resize'));}, 100)});</script>
+
+  </body>
+</html>

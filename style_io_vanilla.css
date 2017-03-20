@@ -1,0 +1,61 @@
+.gdbar img {
+   width: 233px !important;
+   height: 80px !important;
+}
+
+.gdbar {
+  background: none !important;
+  width: 250px !important;
+  height: 900px !important;
+}
+
+/*slides > slide.backdrop {
+  background: red;
+  background-color: red;
+}*/
+
+
+/* wide background */
+/*
+body {
+    background-image: url('data/henri_venne.jpg');
+}
+*/
+
+
+/*
+.current {
+  background: rgba(0, 0, 255, 0.25);
+  background-color: rgba(0, 0, 255, 0.25);
+}
+*/
+
+
+.title-slide {
+  background-image:url('data/glacier.jpg');
+  background-size:cover;
+}
+
+.title-slide h1 {
+    color: white!important;
+    font-size: 2em !important;
+    background: rgba(0,0,0,0.5)!important;
+}
+.title-slide p {
+    color: white!important;
+    background: rgba(0,0,0,0.5)!important;
+}
+
+/* individual cell hovering */
+.dataTable tbody td:hover {
+}
+
+/* row hovering */
+.dataTable tbody tr:hover {
+}
+
+/* header format */
+.datatables thead th{
+  font-weight: bold !important;
+}
+

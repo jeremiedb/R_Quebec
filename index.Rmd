@@ -1,5 +1,5 @@
 ---
-title: "Deep Learning avec<br>MXNet"
+title: "Introduction au Deep Learning<br>avec MXNet"
 author: "Jérémie Desgagné-Bouchard"
 date: "30 janvier 2017"
 output: 
@@ -139,7 +139,7 @@ Boston dataset?
 
 ##Personnalisation de fonction de perte
 
-```{r}
+```{r, echo=F}
 
 data(BostonHousing, package="mlbench")
 
@@ -151,14 +151,23 @@ test.x = data.matrix(BostonHousing[-train.ind, -14])
 test.y = BostonHousing[-train.ind, 14]
 
 # Define the input data
-data1 <- mx.symbol.Variable("data")
-label1 <- mx.symbol.Variable("label")
-fc1 <- mx.symbol.FullyConnected(data=data1, num_hidden=1, name="fc1")
-fc1B <- mx.symbol.broadcast_power(fc1, rhs=-1, name="fcpower")
+data <- mx.symbol.Variable("data")
+label <- mx.symbol.Variable("label")
+fc1 <- mx.symbol.FullyConnected(data=data, num_hidden=1, name="fc1")
+fc1B <- mx.symbol.broadcast_power(lhs=fc1, rhs=-1, name="fcpower")
 
-custom_loss <- mx.symbol.MakeLoss(label1+fc1B)
-graph.viz(custom_loss)
+custom_loss <- mx.symbol.MakeLoss(label+fc1B)
+graph.viz(custom_loss, graph.height.px = 350)
 
+```
+
+
+```{r, echo=T}
+data <- mx.symbol.Variable("data")
+label <- mx.symbol.Variable("label")
+fc1 <- mx.symbol.FullyConnected(data=data, num_hidden=1, name="fc1")
+fc1B <- mx.symbol.broadcast_power(lhs=fc1, rhs=-1, name="fcpower")
+custom_loss <- mx.symbol.MakeLoss(label+fc1B)
 ```
 
 

@@ -37,13 +37,13 @@ body {
 }
 
 .title-slide h1 {
-    color: white!important;
-    font-size: 2em !important;
-    background: rgba(0,0,0,0.5)!important;
+    color: black!important;
+    font-size: 1.5em !important;
+    background: rgba(255,255,255,0.5)!important;
 }
 .title-slide p {
-    color: white!important;
-    background: rgba(0,0,0,0.5)!important;
+    color: black!important;
+    background: rgba(255,255,255,0.5)!important;
 }
 
 /* individual cell hovering */

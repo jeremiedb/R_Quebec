@@ -17,7 +17,6 @@ require("DT")
 require("plotly")
 require("scales")
 require("mxnet")
-
 ```
 
 
@@ -86,24 +85,22 @@ perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
 
 ##Du symbole au calcul
 
-Une fois la structure du modèle définie, il reste à définir les composantes qui permettront à l'algorithme de s'exécuter sur les données réelles.
+Une fois la structure du modèle définie, il reste à mettre en place les composantes qui permettront à l'algorithme de s'exécuter sur les données réelles.
 
+- Initialisation: spécifie la manière dont sont assignés les paramètres avant l'exécution de l'optimisation.  
+    - Normal  
+    - Uniforme  
+    - Xavier
+    
 - Itérateur de données: module dont l'exécution renvoie les données entrantes les variables réponse. 
 
 - Optimiseur: module qui définit la façon dont les paramètres sont mis à jour à chaque itération. 
 
 - Exécuteur: instance qui exécute les calculs. Il peut y en avoir un seul (CPU) ou plusieurs (multi-GPU).
 
-- Initialisation: spécifie la manière dont sont assignés les paramètres avant l'exécution de l'optimisation.
-    - Normal  
-    - Uniforme  
-    - Xavier
 
 
-##Du symbole au calcul - example d'application sur une régression
-
-
-##Itérateur de données
+##Itérateur
 
 La tâche de l'itérateur est de fournir aux exécuteurs les données nécessaires aux calculs pour chacune des itérations sur les mini-batch. 
 
@@ -118,26 +115,21 @@ Des itérateurs personnalisés peuvent être construits directement en R, leur p
 À noter que l'utilisation d'itérateurs sur des CSV ou images permet d'éviter la contrainte de charger la totalité des données en mémoire.  
 
 
-##Sélection de l'optimiseur
+##Optimiseur
 
 ![](data/optimizer1.gif)
 
 Crédit: [Sebastian Ruder](http://sebastianruder.com/optimizing-gradient-descent/)
 
 
-##Exécution sur plusieurs instances (multi_GPU)
+##Exécuteur
 
 ![](data/multi_device_execution.png)
 
 Crédit: [mxnet.io](http://mxnet.io/architecture/note_engine.html)
 
 
-##Régression linéaire
-
-Boston dataset?
-
-
-##Personnalisation de fonction de perte
+##Exemple - Régression linéaire personnalisée
 
 ```{r, echo=F}
 
@@ -145,44 +137,98 @@ data(BostonHousing, package="mlbench")
 
 set.seed(123)
 train.ind = sample(1:nrow(BostonHousing), size = round(0.5*nrow(BostonHousing),0), replace = F)
-train.x = data.matrix(BostonHousing[train.ind, -14])
-train.y = BostonHousing[train.ind, 14]
-test.x = data.matrix(BostonHousing[-train.ind, -14])
-test.y = BostonHousing[-train.ind, 14]
-
-# Define the input data
-data <- mx.symbol.Variable("data")
-label <- mx.symbol.Variable("label")
-fc1 <- mx.symbol.FullyConnected(data=data, num_hidden=1, name="fc1")
-fc1B <- mx.symbol.broadcast_power(lhs=fc1, rhs=-1, name="fcpower")
-
-custom_loss <- mx.symbol.MakeLoss(label+fc1B)
-graph.viz(custom_loss, graph.height.px = 350)
+train_x = data.matrix(BostonHousing[train.ind, -14])
+train_y = BostonHousing[train.ind, 14]
+test_x = data.matrix(BostonHousing[-train.ind, -14])
+test_y = BostonHousing[-train.ind, 14]
 
 ```
-
 
 ```{r, echo=T}
 data <- mx.symbol.Variable("data")
 label <- mx.symbol.Variable("label")
+label <- mx.symbol.identity(label, name="label")
 fc1 <- mx.symbol.FullyConnected(data=data, num_hidden=1, name="fc1")
-fc1B <- mx.symbol.broadcast_power(lhs=fc1, rhs=-1, name="fcpower")
-custom_loss <- mx.symbol.MakeLoss(label+fc1B)
+fc1 <- mx.symbol.Reshape(data=fc1, shape=c(0), name="fc1_reshape")
+perc_err <- mx.symbol.abs(fc1/label-1, name="perc_error")
+custom_loss <- mx.symbol.MakeLoss(perc_err, name="loss")
+graph.viz(custom_loss, direction="LR", graph.height.px = 160)
+```
+
+```{r, echo=T}
+
+model_reg<- mx.model.FeedForward.create(symbol = custom_loss, 
+                                        X = train_x, y = train_y, 
+                                        eval.data = list(data=test_x, label=test_y),
+                                        ctx = mx.cpu(), num.round = 24, 
+                                        array.batch.size = 32,
+                                        optimizer = "sgd",
+                                        learning.rate=0.000001,
+                                        momentum=0.9,
+                                        wd=0.0001, epoch.end.callback = mx.callback.log.train.metric(1), eval.metric = mx.metric.rmse
+)
+
 ```
 
 
+##Réutilisation de modèles pré-entraînés
 
-##Réutilisation et ajustement de modèles pré-entraînés
+Un modèle peut être représenté comme la combinaison de 2 composantes:  
 
-Une collection de modèles est disponible dans le [zoo](http://mxnet.io/model_zoo/index.html)
+  - Structure symbolique: graph représentant l'enchaînement des différents opérateurs  
+  - Paramètres: les poids associés aux opérateurs
 
-Un utilitaire existe également pour convertir des modèles développés sous Caffe. 
+Un modèle performant  bien à une tâche peut fournir une bonne base pour des tâches connexes. 
 
 Exemple: Chat vs Chien avec Resnet [Microsoft 2015](https://arxiv.org/abs/1512.03385)
 
+  1. Charger le modèles de référence (Resnet)  
+  2. Adapter la structure au nouveau problème (changer le nombre de neuronnes de la dernière couche de 1000 à 2)  
+  3. Réutiliser les poids du modèle de référence pour tous les opérateurs saufs ceux qui ont été adaptés. 
+  4. Initialiser aléatoirement les paramètres qui ne sont pas transférés du modèle de référence. 
+  5. Run!  
 
-##Pour pousser plus loin
+Une collection de modèles pré-entraînées est disponible dans le [zoo](http://mxnet.io/model_zoo/index.html)
 
-- Adversial model
 
-- Reinforcement learning
+
+##Analyse de langage avec CNN
+
+[text CNN](http://www.wildml.com/2015/11/understanding-convolutional-neural-networks-for-nlp/)
+
+[sentence classification](https://arxiv.org/pdf/1408.5882.pdf)
+
+
+##Analyse de langage avec RNN
+
+Karpathy recurrent figures
+
+Seq2Seq vs. Seq2Class
+
+![](data/rnn_diags.jpeg)
+
+
+##Bucketing
+
+
+
+##Modèle adversial
+
+Les modèle adversial recoupe une famille de modèles dont le trait commun est de mettre en compétition 2 sous-modèles: 
+
+  - Générateur: à partir de bruit, génère une réponse (image, texte, vecteur...)  
+  - Discriminateur: identifie si la valeur d'entrée provient d'un échantillon réel ou a plutôt été produit par le générateur
+
+![](data/GAN-diagram_256.png)
+
+Crédit: [Tryolabs](https://tryolabs.com/blog/2016/12/06/major-advancements-deep-learning-2016/)
+
+## GAN Conditionel sur MNIST
+
+![](data/conv_nopad_nostride.gif)
+
+![](data/deconv_pad_nostride.gif)
+
+Crédit: [Vincent Dumoulin](https://github.com/vdumoulin/conv_arithmetic)
+
+

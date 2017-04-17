@@ -201,12 +201,10 @@ Une collection de modèles pré-entraînées est disponible dans le [zoo](http:/
 
 ##Analyse de langage avec RNN
 
-Karpathy recurrent figures
-
-Seq2Seq vs. Seq2Class
 
 ![](data/rnn_diags.jpeg)
 
+Crédit: [Andrej Karpathy](http://karpathy.github.io/2015/05/21/rnn-effectiveness/)
 
 ##Bucketing
 
@@ -214,16 +212,42 @@ Seq2Seq vs. Seq2Class
 
 ##Modèle adversial
 
+![](data/GAN-diagram_256.png)
+
+Crédit: [Tryolabs](https://tryolabs.com/blog/2016/12/06/major-advancements-deep-learning-2016/)
+
+
+## Modèle adversial - Définition symbolique
+
 Les modèle adversial recoupe une famille de modèles dont le trait commun est de mettre en compétition 2 sous-modèles: 
 
   - Générateur: à partir de bruit, génère une réponse (image, texte, vecteur...)  
   - Discriminateur: identifie si la valeur d'entrée provient d'un échantillon réel ou a plutôt été produit par le générateur
 
-![](data/GAN-diagram_256.png)
+![](data/dcgan_network.jpg)
 
-Crédit: [Tryolabs](https://tryolabs.com/blog/2016/12/06/major-advancements-deep-learning-2016/)
 
 ## GAN Conditionel sur MNIST
+
+![](data/MNIST_dcgan.png)
+
+Crédit: [Rowel Atienza](https://medium.com/towards-data-science/gan-by-example-using-keras-on-tensorflow-backend-1a6d515a60d0)
+
+--- 
+
+![](data/CGAN_iter_1.png)
+
+--- 
+
+![](data/CGAN_iter_200.png)
+
+
+--- 
+
+![](data/CGAN_iter_2400.png)
+
+
+--- 
 
 ![](data/conv_nopad_nostride.gif)
 

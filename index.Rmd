@@ -214,6 +214,8 @@ Crédit: [Andrej Karpathy](http://karpathy.github.io/2015/05/21/rnn-effectivenes
 
 ![](data/GAN-diagram_256.png)
 
+
+
 Crédit: [Tryolabs](https://tryolabs.com/blog/2016/12/06/major-advancements-deep-learning-2016/)
 
 
@@ -226,6 +228,9 @@ Les modèle adversial recoupe une famille de modèles dont le trait commun est d
 
 ![](data/dcgan_network.jpg)
 
+
+
+Crédit: [Scott Reed](https://github.com/reedscot/icml2016)
 
 ## GAN Conditionel sur MNIST
 
@@ -247,11 +252,15 @@ Crédit: [Rowel Atienza](https://medium.com/towards-data-science/gan-by-example-
 ![](data/CGAN_iter_2400.png)
 
 
---- 
+## COnvolution vs. Déconvolution
 
 ![](data/conv_nopad_nostride.gif)
 
+
+
 ![](data/deconv_pad_nostride.gif)
+
+
 
 Crédit: [Vincent Dumoulin](https://github.com/vdumoulin/conv_arithmetic)
 

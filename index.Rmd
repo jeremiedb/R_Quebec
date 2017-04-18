@@ -20,6 +20,19 @@ require("mxnet")
 ```
 
 
+```{r, echo=F}
+
+data(BostonHousing, package="mlbench")
+
+set.seed(123)
+train.ind = sample(1:nrow(BostonHousing), size = round(0.5*nrow(BostonHousing),0), replace = F)
+train_x = data.matrix(BostonHousing[train.ind, -14])
+train_y = BostonHousing[train.ind, 14]
+eval_x = data.matrix(BostonHousing[-train.ind, -14])
+eval_y = BostonHousing[-train.ind, 14]
+
+```
+
 ##Architecture symbolique
 
 La composition symbolique du modèle permet de définir:  
@@ -60,7 +73,7 @@ data<- mx.symbol.Variable(name = "data")
 weight1<- mx.symbol.Variable(name = "weight1")
 weight1<- mx.symbol.identity(weight1, name = "weight1")
 
-fc1<- mx.symbol.FullyConnected(data=data, num_hidden=4, weight=weight1, name = "fc_1")
+fc1<- mx.symbol.FullyConnected(data=data, num_hidden=5, weight=weight1, name = "fc_1")
 act1<- mx.symbol.Activation(data=fc1, act_type="relu", name = "act_1")
 
 weight2<- mx.symbol.Variable(name = "weight2")
@@ -70,13 +83,13 @@ final<- mx.symbol.FullyConnected(data=act1, num_hidden=1, weight=weight2, name =
 perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
 ```
 
-```{r, echo=FALSE, fig.align='left'}
-graph.viz(perte, shape = c(10,64), type = "graph", direction = "LR", graph.width.px = 800, graph.height.px = 240)
+```{r, echo=FALSE}
+graph.viz(perte, shape = c(13,16), type = "graph", direction = "LR", graph.width.px = 800, graph.height.px = 240)
 ```
 
 ```{r, echo=T}
 data<- mx.symbol.Variable(name = "data")
-fc1<- mx.symbol.FullyConnected(data=data, num_hidden=4, name = "fc_1")
+fc1<- mx.symbol.FullyConnected(data=data, num_hidden=5, name = "fc_1")
 act1<- mx.symbol.Activation(data=fc1, act_type="relu", name = "act_1")
 final<- mx.symbol.FullyConnected(data=act1, num_hidden=1, name = "final")
 perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
@@ -91,6 +104,13 @@ Une fois la structure du modèle définie, il reste à mettre en place les compo
     - Normal  
     - Uniforme  
     - Xavier
+    
+```{r}
+initializer_uniform = mx.init.uniform(0.01)
+initializer_normal = mx.init.normal(0.01)
+initializer_Xavier = mx.init.Xavier(rnd_type = "gaussian", factor_type = "avg", magnitude = 2)
+```
+
     
 - Itérateur de données: module dont l'exécution renvoie les données entrantes les variables réponse. 
 
@@ -114,12 +134,26 @@ Des itérateurs personnalisés peuvent être construits directement en R, leur p
 
 À noter que l'utilisation d'itérateurs sur des CSV ou images permet d'éviter la contrainte de charger la totalité des données en mémoire.  
 
+MXNet fonctionne par défaut avec des données orientées par colonnes (chaque observation se trouve dans une colonne différente). 
+
+```{r}
+train_iter<- mx.io.arrayiter(data = t(train_x), label = train_y, batch.size = 16, shuffle = T)
+eval_iter<- mx.io.arrayiter(data = t(eval_x), label = eval_y, batch.size = 16, shuffle = F)
+```
+
 
 ##Optimiseur
 
-![](data/optimizer1.gif)
+![](data/optimizer1C.gif)
 
-Crédit: [Sebastian Ruder](http://sebastianruder.com/optimizing-gradient-descent/)
+![](data/optimizer1D.gif)
+
+Crédit: [Alec Radford](http://www.denizyuret.com/2015/03/alec-radfords-animations-for.html)
+
+```{r}
+optimizer_sgd<- mx.opt.create(name = "sgd", learning.rate=0.001, momentum=0.9, wd=0.01, clip_gradient = 1)
+optimizer_adadelta<- mx.opt.create(name = "adadelta", rho=0.90, epsilon=1e-5, wd=0.01, clip_gradient = 1)
+```
 
 
 ##Exécuteur
@@ -129,45 +163,20 @@ Crédit: [Sebastian Ruder](http://sebastianruder.com/optimizing-gradient-descent
 Crédit: [mxnet.io](http://mxnet.io/architecture/note_engine.html)
 
 
-##Exemple - Régression linéaire personnalisée
-
-```{r, echo=F}
-
-data(BostonHousing, package="mlbench")
-
-set.seed(123)
-train.ind = sample(1:nrow(BostonHousing), size = round(0.5*nrow(BostonHousing),0), replace = F)
-train_x = data.matrix(BostonHousing[train.ind, -14])
-train_y = BostonHousing[train.ind, 14]
-test_x = data.matrix(BostonHousing[-train.ind, -14])
-test_y = BostonHousing[-train.ind, 14]
-
-```
+## Exemple - Entraînement d'une régression
 
 ```{r, echo=T}
-data <- mx.symbol.Variable("data")
-label <- mx.symbol.Variable("label")
-label <- mx.symbol.identity(label, name="label")
-fc1 <- mx.symbol.FullyConnected(data=data, num_hidden=1, name="fc1")
-fc1 <- mx.symbol.Reshape(data=fc1, shape=c(0), name="fc1_reshape")
-perc_err <- mx.symbol.abs(fc1/label-1, name="perc_error")
-custom_loss <- mx.symbol.MakeLoss(perc_err, name="loss")
-graph.viz(custom_loss, direction="LR", graph.height.px = 160)
-```
-
-```{r, echo=T}
-
-model_reg<- mx.model.FeedForward.create(symbol = custom_loss, 
-                                        X = train_x, y = train_y, 
-                                        eval.data = list(data=test_x, label=test_y),
-                                        ctx = mx.cpu(), num.round = 24, 
-                                        array.batch.size = 32,
-                                        optimizer = "sgd",
-                                        learning.rate=0.000001,
-                                        momentum=0.9,
-                                        wd=0.0001, epoch.end.callback = mx.callback.log.train.metric(1), eval.metric = mx.metric.rmse
+model_reg<- mx.model.FeedForward.create(symbol = perte, 
+                                        num.round = 5, 
+                                        X = train_iter,
+                                        eval.data = eval_iter,
+                                        ctx = mx.cpu(),
+                                        optimizer = optimizer_adadelta,
+                                        eval.metric = mx.metric.rmse, 
+                                        initializer = initializer_uniform,
+                                        epoch.end.callback = mx.callback.log.train.metric(1),
+                                        verbose = T
 )
-
 ```
 
 
@@ -194,74 +203,42 @@ Une collection de modèles pré-entraînées est disponible dans le [zoo](http:/
 
 ##Analyse de langage avec CNN
 
-[text CNN](http://www.wildml.com/2015/11/understanding-convolutional-neural-networks-for-nlp/)
+![](data/text_cnn_50.png)
 
-[sentence classification](https://arxiv.org/pdf/1408.5882.pdf)
+Crédit: [Zang et Wallace](https://arxiv.org/pdf/1510.03820.pdf) et [WildML](http://www.wildml.com/2015/11/understanding-convolutional-neural-networks-for-nlp/)
 
 
 ##Analyse de langage avec RNN
 
+Les modès récurrents (RNN) forment une famille de modèles ayant mené à des avancées pas moins significatives que ce qu'ont permis les CNN, notamment pour la traduction machine (Google Translate). 
 
-![](data/rnn_diags.jpeg)
+![](data/rnn_diags_75.jpg)
+
 
 Crédit: [Andrej Karpathy](http://karpathy.github.io/2015/05/21/rnn-effectiveness/)
 
-##Bucketing
+
+##Bucketing?
 
 
-
-##Modèle adversial
-
-![](data/GAN-diagram_256.png)
-
-
-
-Crédit: [Tryolabs](https://tryolabs.com/blog/2016/12/06/major-advancements-deep-learning-2016/)
-
-
-## Modèle adversial - Définition symbolique
+## Generative Adversial Network (GAN)
 
 Les modèle adversial recoupe une famille de modèles dont le trait commun est de mettre en compétition 2 sous-modèles: 
 
   - Générateur: à partir de bruit, génère une réponse (image, texte, vecteur...)  
   - Discriminateur: identifie si la valeur d'entrée provient d'un échantillon réel ou a plutôt été produit par le générateur
 
-![](data/dcgan_network.jpg)
-
-
-
-Crédit: [Scott Reed](https://github.com/reedscot/icml2016)
-
-## GAN Conditionel sur MNIST
-
-![](data/MNIST_dcgan.png)
+![](data/MNIST_dcgan_50.png)
 
 Crédit: [Rowel Atienza](https://medium.com/towards-data-science/gan-by-example-using-keras-on-tensorflow-backend-1a6d515a60d0)
 
---- 
 
-![](data/CGAN_iter_1.png)
+## GAN Conditionel
 
---- 
+Le GAN conditionel est une variation permettant de générer un objet ayant des caractéristiques spécifiques. Ça peut être l'étiquette de la classe (ex: un chiffre pour MNIST) ou encore une expression plus élaborée (ex: un chat noir sur une chaise verte). 
 
-![](data/CGAN_iter_200.png)
+![](data/dcgan_network.jpg)
 
-
---- 
-
-![](data/CGAN_iter_2400.png)
-
-
-## COnvolution vs. Déconvolution
-
-![](data/conv_nopad_nostride.gif)
-
-
-
-![](data/deconv_pad_nostride.gif)
-
-
-
-Crédit: [Vincent Dumoulin](https://github.com/vdumoulin/conv_arithmetic)
+Crédit: [Scott Reed](https://github.com/reedscot/icml2016)
 
 

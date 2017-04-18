@@ -141,7 +141,7 @@ Une fois la structure du modèle définie, il reste à définir les composantes 
 
 ---
 
-##Itérateur de données
+##Itérateur
 
 La tâche de l'itérateur est de fournir aux exécuteurs les données nécessaires aux calculs pour chacune des itérations sur les mini-batch. 
 
@@ -158,7 +158,11 @@ Des itérateurs personnalisés peuvent être construits directement en R, leur p
 
 ---
 
-##Sélection de l'optimiseur
+##Optimiseur
+
+```{r}
+optimizer_adadelta<- mx.opt.create(name = "adadelta", rho=0.9, epsilon=1e-5)
+```
 
 ![](data/optimizer1.gif)
 
@@ -181,20 +185,104 @@ Boston dataset?
 
 ---
 
-##Réutilisation et ajustement de modèles pré-entraînés
+##Réutilisation de modèles pré-entraînés
 
-Une collection de modèles est disponible dans le [zoo](http://mxnet.io/model_zoo/index.html)
+Un modèle peut être représenté comme la combinaison de 2 composantes:  
 
-Un utilitaire existe également pour convertir des modèles développés sous Caffe. 
+  - Structure symbolique: graph représentant l'enchaînement des différents opérateurs  
+  - Paramètres: les poids associés aux opérateurs
 
-Exemple: Chat vs Chien avec Resnet [Microsoft 2015](reference needed)
+Un modèle performant  bien à une tâche peut fournir une bonne base pour des tâches connexes. 
 
+Exemple: Chat vs Chien avec Resnet [Microsoft 2015](https://arxiv.org/abs/1512.03385)
+
+  1. Charger le modèles de référence (Resnet)  
+  2. Adapter la structure au nouveau problème (changer le nombre de neuronnes de la dernière couche de 1000 à 2)  
+  3. Réutiliser les poids du modèle de référence pour tous les opérateurs saufs ceux qui ont été adaptés. 
+  4. Initialiser aléatoirement les paramètres qui ne sont pas transférés du modèle de référence. 
+  5. Run!  
+
+Une collection de modèles pré-entraînées est disponible dans le [zoo](http://mxnet.io/model_zoo/index.html)
 
 
 ---
 
-##Pour pousser plus loin
+##Analyse de langage avec CNN
 
-- Adversial model
+![](data/text_cnn.png)
 
-- Reinforcement learning
+Crédit: [Zang and Wallace](https://arxiv.org/pdf/1510.03820.pdf) and [WildML](http://www.wildml.com/2015/11/understanding-convolutional-neural-networks-for-nlp/)
+
+---
+
+##Analyse de langage avec RNN
+
+Les modès récurrents (RNN) forment une famille de modèles ayant mené à des avancées pas moins significatives que ce qu'ont permis les CNN, notamment pour la traduction machine (Google Translate). 
+
+![](data/rnn_diags.jpeg)
+
+Crédit: [Andrej Karpathy](http://karpathy.github.io/2015/05/21/rnn-effectiveness/)
+
+---
+
+##Bucketing
+
+
+---
+
+##Modèle adversial
+
+![](data/GAN-diagram_256.png)
+
+Crédit: [Tryolabs](https://tryolabs.com/blog/2016/12/06/major-advancements-deep-learning-2016/)
+
+---
+
+## Modèle adversial - Définition symbolique
+
+Les modèle adversial recoupe une famille de modèles dont le trait commun est de mettre en compétition 2 sous-modèles: 
+
+  - Générateur: à partir de bruit, génère une réponse (image, texte, vecteur...)  
+  - Discriminateur: identifie si la valeur d'entrée provient d'un échantillon réel ou a plutôt été produit par le générateur
+
+![](data/dcgan_network.jpg)
+
+
+
+Crédit: [Scott Reed](https://github.com/reedscot/icml2016)
+
+---
+
+## GAN Conditionel sur MNIST
+
+![](data/MNIST_dcgan.png)
+
+Crédit: [Rowel Atienza](https://medium.com/towards-data-science/gan-by-example-using-keras-on-tensorflow-backend-1a6d515a60d0)
+
+--- 
+
+![](data/CGAN_iter_1.png)
+
+---
+
+![](data/CGAN_iter_200.png)
+
+
+---
+
+![](data/CGAN_iter_2400.png)
+
+---
+class: two-column
+
+## Convolution vs. Déconvolution
+
+.pull-left[
+![](data/conv_nopad_nostride.gif)
+]
+
+.pull-right[
+![](data/deconv_pad_nostride.gif)
+]
+
+Crédit: [Vincent Dumoulin](https://github.com/vdumoulin/conv_arithmetic)

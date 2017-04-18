@@ -36,9 +36,10 @@ eval_y = BostonHousing[-train.ind, 14]
 ##Architecture symbolique
 
 La composition symbolique du modèle permet de définir:  
-  - Ses entrants et les variables réponse  
-  - Sa structure  
-  - Sa fonction objective (RMSE, MAE, Softmax, ...)  
+
+- Ses entrants et les variables réponse  
+- Sa structure  
+- Sa fonction objective (RMSE, MAE, Softmax, ...)  
 
 ```{r, echo=T, include=FALSE}
 data<- mx.symbol.Variable(name = "data")
@@ -100,6 +101,13 @@ perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
 
 Une fois la structure du modèle définie, il reste à mettre en place les composantes qui permettront à l'algorithme de s'exécuter sur les données réelles.
 
+
+- Itérateur de données: module dont l'exécution renvoie les données entrantes les variables réponse. 
+
+- Optimiseur: module qui définit la façon dont les paramètres sont mis à jour à chaque itération. 
+
+- Exécuteur: instance qui exécute les calculs. Il peut y en avoir un seul (CPU) ou plusieurs (multi-GPU).
+
 - Initialisation: spécifie la manière dont sont assignés les paramètres avant l'exécution de l'optimisation.  
     - Normal  
     - Uniforme  
@@ -111,14 +119,6 @@ initializer_normal = mx.init.normal(0.01)
 initializer_Xavier = mx.init.Xavier(rnd_type = "gaussian", factor_type = "avg", magnitude = 2)
 ```
 
-    
-- Itérateur de données: module dont l'exécution renvoie les données entrantes les variables réponse. 
-
-- Optimiseur: module qui définit la façon dont les paramètres sont mis à jour à chaque itération. 
-
-- Exécuteur: instance qui exécute les calculs. Il peut y en avoir un seul (CPU) ou plusieurs (multi-GPU).
-
-
 
 ##Itérateur
 
@@ -126,10 +126,10 @@ La tâche de l'itérateur est de fournir aux exécuteurs les données nécessair
 
 Les itérateurs pré-définis sont: 
 
-  - mx.io.arrayiter: itérateur prenant un objet array comme entrée  
-  - mx.io.CSVIter: lecture d'un CSV  
-  - mx.io.ImageRecordIter: lecture d'images en format binaire 
-  
+- mx.io.arrayiter: itérateur prenant un objet array comme entrée  
+- mx.io.CSVIter: lecture d'un CSV  
+- mx.io.ImageRecordIter: lecture d'images en format binaire 
+
 Des itérateurs personnalisés peuvent être construits directement en R, leur performance dépend des fonctionnalités sous-jacentes. 
 
 À noter que l'utilisation d'itérateurs sur des CSV ou images permet d'éviter la contrainte de charger la totalité des données en mémoire.  

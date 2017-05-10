@@ -1,7 +1,7 @@
 ---
 title: "Introduction au Deep Learning<br>avec MXNet"
 author: "Jérémie Desgagné-Bouchard"
-date: "30 janvier 2017"
+date: "26 mai 2017"
 output: 
     ioslides_presentation: 
         css: style_io_vanilla.css
@@ -17,6 +17,7 @@ require("DT")
 require("plotly")
 require("scales")
 require("mxnet")
+source("Resnet_factory.R")
 ```
 
 
@@ -33,13 +34,46 @@ eval_y = BostonHousing[-train.ind, 14]
 
 ```
 
-##Architecture symbolique
 
-La composition symbolique du modèle permet de définir:  
+## Aperçu de la librairie
 
-- Ses entrants et les variables réponse  
-- Sa structure  
-- Sa fonction objective (RMSE, MAE, Softmax, ...)  
+MXNet est un engin de deep learning permettant le développement, l'entraînement et le déploiement de modèle de Deep Learning. 
+
+Son architecture facilite l'exécution en parallèle sur de multiples GPU ou machines (Yarn - Hadoop)
+
+Plusieurs langages sont supportés: R, Python, Scala, Julia, Perl, C++ en plus de permettre le déploiement de modèle sur mobile pour l'inférence.  
+
+Le projet a été reçu en 2017 dans l'Incubateur Apache et a été choisi comme engin de prédilection chez Amazon. 
+
+Le nom MXNet provient d'utilisation mixte de composantes de code impératif et déclaratif. 
+
+## Composantes d'un modèle
+
+- Structure du modèle: représentation symbolique des opérateurs qui composent le modèle et définissent les transformations applicables aux entrants.   
+
+- Itérateur de données: fonction dont l'exécution fournit au modèle les entrants requis pour son exécution (ex: variables explicatives et réponses). 
+
+- Optimiseur: module qui définit la façon dont les paramètres sont mis à jour à chaque itération. 
+
+- Exécuteur: instance qui exécute les calculs. Il peut y en avoir un seul (CPU) ou plusieurs (multi-GPU).  
+
+- Initialisation: spécifie la manière dont sont assignés les paramètres avant l'exécution de l'optimisation.  
+    - Normal  
+    - Uniforme  
+    - Xavier
+    
+```{r}
+initializer_uniform = mx.init.uniform(0.01)
+initializer_normal = mx.init.normal(0.01)
+initializer_Xavier = mx.init.Xavier(rnd_type = "gaussian", factor_type = "avg", magnitude = 2)
+```
+
+
+## Architecture symbolique
+
+La composition symbolique du modèle permet de définir:  les entrants et les variables réponse, la structure et la fonction objective (RMSE, MAE, Softmax, ...). 
+
+Aucun calcul n'est effectué à cette étape. Seule la structure du modèle est établie afin de déterminer les dépendances de calculs aux fins d'optimisation de l'exécution et la gestion de la mémoire. 
 
 ```{r, echo=T, include=FALSE}
 data<- mx.symbol.Variable(name = "data")
@@ -54,41 +88,41 @@ perte<- mx.symbol.LinearRegressionOutput(data=final, label=label, name = "perte_
 ```
 
 ```{r, echo=FALSE, fig.align='center'}
-graph.viz(perte, shape = c(10,64), type = "graph", direction = "LR", graph.width.px = 500, graph.height.px = 240)
+graph.viz(perte, shape = c(10,64), type = "graph", direction = "LR", graph.width.px = 450, graph.height.px = 240)
 ```
 
-```{r, echo=T}
+```{r, echo=TRUE, eval=TRUE}
 data<- mx.symbol.Variable(name = "data")
 final<- mx.symbol.FullyConnected(data=data, num_hidden=1, name = "final")
 perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
 ```
 
 
-##De la régression simple au deep learning
+## Exemples d'architectures
 
-Aucun calcul n'est réalisé à cette étape. 
-Seule la structure du modèle est définie afin de déterminer les dépendances de calculs aux fins d'optimisation de l'exécution et la gestion de la mémoire. 
+#### Multi-layer perceptron
 
 ```{r, include=F}
 data<- mx.symbol.Variable(name = "data")
 weight1<- mx.symbol.Variable(name = "weight1")
-weight1<- mx.symbol.identity(weight1, name = "weight1")
+#weight1<- mx.symbol.identity(weight1, name = "weight1")
 
 fc1<- mx.symbol.FullyConnected(data=data, num_hidden=5, weight=weight1, name = "fc_1")
 act1<- mx.symbol.Activation(data=fc1, act_type="relu", name = "act_1")
 
 weight2<- mx.symbol.Variable(name = "weight2")
-weight2<- mx.symbol.identity(weight2, name = "weight2")
+#weight2<- mx.symbol.identity(weight2, name = "weight2")
 
 final<- mx.symbol.FullyConnected(data=act1, num_hidden=1, weight=weight2, name = "final")
 perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
 ```
 
+
 ```{r, echo=FALSE}
-graph.viz(perte, shape = c(13,16), type = "graph", direction = "LR", graph.width.px = 800, graph.height.px = 240)
+graph.viz(perte, shape = c(13,16), type = "graph", direction = "LR", graph.width.px = 600, graph.height.px = 80)
 ```
 
-```{r, echo=T}
+```{r, echo=TRUE, eval=TRUE}
 data<- mx.symbol.Variable(name = "data")
 fc1<- mx.symbol.FullyConnected(data=data, num_hidden=5, name = "fc_1")
 act1<- mx.symbol.Activation(data=fc1, act_type="relu", name = "act_1")
@@ -97,30 +131,23 @@ perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
 ```
 
 
-##Du symbole au calcul
+#### Convolutionnal Neural Network
 
-Une fois la structure du modèle définie, il reste à mettre en place les composantes qui permettront à l'algorithme de s'exécuter sur les données réelles.
+Microsoft ResNet
 
+```{r, echo=FALSE}
+resnet<- Resnet_factory(num_classes = 2, loops = 1)
+graph.viz(resnet, type = "graph", direction = "LR", graph.width.px = 975, graph.height.px = 100)
+```
 
-- Itérateur de données: module dont l'exécution renvoie les données entrantes les variables réponse. 
-
-- Optimiseur: module qui définit la façon dont les paramètres sont mis à jour à chaque itération. 
-
-- Exécuteur: instance qui exécute les calculs. Il peut y en avoir un seul (CPU) ou plusieurs (multi-GPU).
-
-- Initialisation: spécifie la manière dont sont assignés les paramètres avant l'exécution de l'optimisation.  
-    - Normal  
-    - Uniforme  
-    - Xavier
-    
-```{r}
-initializer_uniform = mx.init.uniform(0.01)
-initializer_normal = mx.init.normal(0.01)
-initializer_Xavier = mx.init.Xavier(rnd_type = "gaussian", factor_type = "avg", magnitude = 2)
+```{r, echo=TRUE, eval=TRUE}
+resnet<- Resnet_factory(num_classes = 2, loops=1)
 ```
 
 
-##Itérateur
+
+
+## Itérateur
 
 La tâche de l'itérateur est de fournir aux exécuteurs les données nécessaires aux calculs pour chacune des itérations sur les mini-batch. 
 
@@ -142,7 +169,7 @@ eval_iter<- mx.io.arrayiter(data = t(eval_x), label = eval_y, batch.size = 16, s
 ```
 
 
-##Optimiseur
+## Optimiseur
 
 ![](data/optimizer1C.gif)
 
@@ -156,14 +183,14 @@ optimizer_adadelta<- mx.opt.create(name = "adadelta", rho=0.90, epsilon=1e-5, wd
 ```
 
 
-##Exécuteur
+## Exécuteur
 
 ![](data/multi_device_execution.png)
 
 Crédit: [mxnet.io](http://mxnet.io/architecture/note_engine.html)
 
 
-## Exemple - Entraînement d'une régression
+## Exemple - Régression avec MLP
 
 ```{r, echo=T}
 model_reg<- mx.model.FeedForward.create(symbol = perte, 
@@ -175,8 +202,7 @@ model_reg<- mx.model.FeedForward.create(symbol = perte,
                                         eval.metric = mx.metric.rmse, 
                                         initializer = initializer_uniform,
                                         epoch.end.callback = mx.callback.log.train.metric(1),
-                                        verbose = T
-)
+                                        verbose = T)
 ```
 
 
@@ -201,14 +227,14 @@ Une collection de modèles pré-entraînées est disponible dans le [zoo](http:/
 
 
 
-##Analyse de langage avec CNN
+## Analyse de langage avec CNN
 
 ![](data/text_cnn_50.png)
 
 Crédit: [Zang et Wallace](https://arxiv.org/pdf/1510.03820.pdf) et [WildML](http://www.wildml.com/2015/11/understanding-convolutional-neural-networks-for-nlp/)
 
 
-##Analyse de langage avec RNN
+## Analyse de langage avec RNN
 
 Les modès récurrents (RNN) forment une famille de modèles ayant mené à des avancées pas moins significatives que ce qu'ont permis les CNN, notamment pour la traduction machine (Google Translate). 
 

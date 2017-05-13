@@ -21,7 +21,7 @@ source("Resnet_factory.R")
 ```
 
 
-```{r, echo=F}
+```{r, echo=FALSE}
 
 data(BostonHousing, package="mlbench")
 
@@ -37,7 +37,7 @@ eval_y = BostonHousing[-train.ind, 14]
 
 ## Aperçu de la librairie
 
-MXNet est un engin de deep learning permettant le développement, l'entraînement et le déploiement de modèle de Deep Learning. 
+MXNet est un engin permettant le développement, l'entraînement et le déploiement de modèle de Deep Learning. 
 
 Son architecture facilite l'exécution en parallèle sur de multiples GPU ou machines (Yarn - Hadoop)
 
@@ -49,7 +49,7 @@ Le nom MXNet provient d'utilisation mixte de composantes de code impératif et d
 
 ## Composantes d'un modèle
 
-- Structure du modèle: représentation symbolique des opérateurs qui composent le modèle et définissent les transformations applicables aux entrants.   
+- Architecture: représentation symbolique des opérateurs qui composent le modèle et définissent les transformations applicables aux entrants.   
 
 - Itérateur de données: fonction dont l'exécution fournit au modèle les entrants requis pour son exécution (ex: variables explicatives et réponses). 
 
@@ -57,25 +57,16 @@ Le nom MXNet provient d'utilisation mixte de composantes de code impératif et d
 
 - Exécuteur: instance qui exécute les calculs. Il peut y en avoir un seul (CPU) ou plusieurs (multi-GPU).  
 
-- Initialisation: spécifie la manière dont sont assignés les paramètres avant l'exécution de l'optimisation.  
-    - Normal  
-    - Uniforme  
-    - Xavier
-    
-```{r}
-initializer_uniform = mx.init.uniform(0.01)
-initializer_normal = mx.init.normal(0.01)
-initializer_Xavier = mx.init.Xavier(rnd_type = "gaussian", factor_type = "avg", magnitude = 2)
-```
+- Initialisation: spécifie la manière dont sont assignés les paramètres avant l'exécution de l'optimisation.
 
 
-## Architecture symbolique
+## Architecture
 
 La composition symbolique du modèle permet de définir:  les entrants et les variables réponse, la structure et la fonction objective (RMSE, MAE, Softmax, ...). 
 
 Aucun calcul n'est effectué à cette étape. Seule la structure du modèle est établie afin de déterminer les dépendances de calculs aux fins d'optimisation de l'exécution et la gestion de la mémoire. 
 
-```{r, echo=T, include=FALSE}
+```{r, echo=TRUE, include=FALSE}
 data<- mx.symbol.Variable(name = "data")
 label<- mx.symbol.Variable(name = "label")
 label<- mx.symbol.identity(label, name = "label")
@@ -102,7 +93,7 @@ perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
 
 #### Multi-layer perceptron
 
-```{r, include=F}
+```{r, include=FALSE}
 data<- mx.symbol.Variable(name = "data")
 weight1<- mx.symbol.Variable(name = "weight1")
 #weight1<- mx.symbol.identity(weight1, name = "weight1")
@@ -119,7 +110,7 @@ perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
 
 
 ```{r, echo=FALSE}
-graph.viz(perte, shape = c(13,16), type = "graph", direction = "LR", graph.width.px = 600, graph.height.px = 80)
+graph.viz(perte, shape = c(10,64), type = "graph", direction = "LR", graph.width.px = 600, graph.height.px = 80)
 ```
 
 ```{r, echo=TRUE, eval=TRUE}
@@ -145,8 +136,6 @@ resnet<- Resnet_factory(num_classes = 2, loops=1)
 ```
 
 
-
-
 ## Itérateur
 
 La tâche de l'itérateur est de fournir aux exécuteurs les données nécessaires aux calculs pour chacune des itérations sur les mini-batch. 
@@ -164,12 +153,14 @@ Des itérateurs personnalisés peuvent être construits directement en R, leur p
 MXNet fonctionne par défaut avec des données orientées par colonnes (chaque observation se trouve dans une colonne différente). 
 
 ```{r}
-train_iter<- mx.io.arrayiter(data = t(train_x), label = train_y, batch.size = 16, shuffle = T)
-eval_iter<- mx.io.arrayiter(data = t(eval_x), label = eval_y, batch.size = 16, shuffle = F)
+train_iter<- mx.io.arrayiter(data = t(train_x), label = train_y, batch.size = 16, shuffle = TRUE)
+eval_iter<- mx.io.arrayiter(data = t(eval_x), label = eval_y, batch.size = 16, shuffle = FALSE)
 ```
 
 
 ## Optimiseur
+
+La technique de base pour la mise à jour des paramètres repose sur le Stochastic Gradient Descent (SGD). De nombreuses variantes développées pour rendre plus rapide ou robuste la convergence sont disponibles et des variantes personnalisées peuvent être implantées simplement.    
 
 ![](data/optimizer1C.gif)
 
@@ -190,9 +181,35 @@ optimizer_adadelta<- mx.opt.create(name = "adadelta", rho=0.90, epsilon=1e-5, wd
 Crédit: [mxnet.io](http://mxnet.io/architecture/note_engine.html)
 
 
+## Initialisation
+
+Afin que le modèle puisse apprendre, des valeurs aléatoires sont assignées aux paramètres du modèle avant l'exécution de l'optimisation. Différentes approches sont disponibles:  
+
+- Normal    
+- Uniforme  
+- Xavier
+  
+```{r}
+initializer_uniform = mx.init.uniform(0.01)
+initializer_normal = mx.init.normal(0.01)
+initializer_Xavier = mx.init.Xavier(rnd_type = "gaussian", factor_type = "avg", magnitude = 2)
+```
+
+```{r}
+shapes<- perte$infer.shape(list(data=c(10,64)))
+init_weight<- mx.init.create(initializer_uniform, shape.array = shapes$arg.shapes, ctx = mx.cpu())
+```
+
+Poids initiaux de la dernière couche: 
+
+```{r, echo=FALSE}
+as.array(init_weight$final_weight)
+```
+
+
 ## Exemple - Régression avec MLP
 
-```{r, echo=T}
+```{r, echo=TRUE}
 model_reg<- mx.model.FeedForward.create(symbol = perte, 
                                         num.round = 5, 
                                         X = train_iter,
@@ -202,7 +219,7 @@ model_reg<- mx.model.FeedForward.create(symbol = perte,
                                         eval.metric = mx.metric.rmse, 
                                         initializer = initializer_uniform,
                                         epoch.end.callback = mx.callback.log.train.metric(1),
-                                        verbose = T)
+                                        verbose = TRUE)
 ```
 
 
@@ -244,22 +261,12 @@ Les modès récurrents (RNN) forment une famille de modèles ayant mené à des 
 Crédit: [Andrej Karpathy](http://karpathy.github.io/2015/05/21/rnn-effectiveness/)
 
 
-##Bucketing?
-
-
 ## Generative Adversial Network (GAN)
 
 Les modèle adversial recoupe une famille de modèles dont le trait commun est de mettre en compétition 2 sous-modèles: 
 
   - Générateur: à partir de bruit, génère une réponse (image, texte, vecteur...)  
   - Discriminateur: identifie si la valeur d'entrée provient d'un échantillon réel ou a plutôt été produit par le générateur
-
-![](data/MNIST_dcgan_50.png)
-
-Crédit: [Rowel Atienza](https://medium.com/towards-data-science/gan-by-example-using-keras-on-tensorflow-backend-1a6d515a60d0)
-
-
-## GAN Conditionel
 
 Le GAN conditionel est une variation permettant de générer un objet ayant des caractéristiques spécifiques. Ça peut être l'étiquette de la classe (ex: un chiffre pour MNIST) ou encore une expression plus élaborée (ex: un chat noir sur une chaise verte). 
 

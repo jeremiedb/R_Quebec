@@ -11,7 +11,6 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-#options(htmltools.dir.version = FALSE)
 require("dplyr")
 require("DT")
 require("plotly")
@@ -93,6 +92,8 @@ perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
 
 #### Multi-layer perceptron
 
+Régression/classification
+
 ```{r, include=FALSE}
 data<- mx.symbol.Variable(name = "data")
 weight1<- mx.symbol.Variable(name = "weight1")
@@ -124,7 +125,7 @@ perte<- mx.symbol.LinearRegressionOutput(data=final, name = "perte_lineaire")
 
 #### Convolutionnal Neural Network
 
-Microsoft ResNet
+Reconnaissance d'image - Microsoft ResNet
 
 ```{r, echo=FALSE}
 resnet<- Resnet_factory(num_classes = 2, loops = 1)
@@ -153,8 +154,8 @@ Des itérateurs personnalisés peuvent être construits directement en R, leur p
 MXNet fonctionne par défaut avec des données orientées par colonnes (chaque observation se trouve dans une colonne différente). 
 
 ```{r}
-train_iter<- mx.io.arrayiter(data = t(train_x), label = train_y, batch.size = 16, shuffle = TRUE)
-eval_iter<- mx.io.arrayiter(data = t(eval_x), label = eval_y, batch.size = 16, shuffle = FALSE)
+train_iter<- mx.io.arrayiter(data = t(train_x), label = train_y, batch.size = 64, shuffle = TRUE)
+eval_iter<- mx.io.arrayiter(data = t(eval_x), label = eval_y, batch.size = 64, shuffle = FALSE)
 ```
 
 
@@ -169,26 +170,15 @@ La technique de base pour la mise à jour des paramètres repose sur le Stochast
 Crédit: [Alec Radford](http://www.denizyuret.com/2015/03/alec-radfords-animations-for.html)
 
 ```{r}
-optimizer_sgd<- mx.opt.create(name = "sgd", learning.rate=0.001, momentum=0.9, wd=0.01, clip_gradient = 1)
-optimizer_adadelta<- mx.opt.create(name = "adadelta", rho=0.90, epsilon=1e-5, wd=0.01, clip_gradient = 1)
+optimizer_sgd<- mx.opt.create(name = "sgd", learning.rate=0.01, momentum=0.2, wd=0.001, clip_gradient = NULL)
+optimizer_adadelta<- mx.opt.create(name = "adadelta", rho=0.9, epsilon=1e-5, wd=0.001, clip_gradient = NULL)
 ```
-
-
-## Exécuteur
-
-![](data/multi_device_execution.png)
-
-Crédit: [mxnet.io](http://mxnet.io/architecture/note_engine.html)
 
 
 ## Initialisation
 
-Afin que le modèle puisse apprendre, des valeurs aléatoires sont assignées aux paramètres du modèle avant l'exécution de l'optimisation. Différentes approches sont disponibles:  
+Afin que le modèle puisse apprendre, des valeurs aléatoires sont assignées aux paramètres du modèle avant l'exécution de l'optimisation. Différentes approches sont disponibles: Normal, Uniforme, Xavier. 
 
-- Normal    
-- Uniforme  
-- Xavier
-  
 ```{r}
 initializer_uniform = mx.init.uniform(0.01)
 initializer_normal = mx.init.normal(0.01)
@@ -197,30 +187,51 @@ initializer_Xavier = mx.init.Xavier(rnd_type = "gaussian", factor_type = "avg", 
 
 ```{r}
 shapes<- perte$infer.shape(list(data=c(10,64)))
-init_weight<- mx.init.create(initializer_uniform, shape.array = shapes$arg.shapes, ctx = mx.cpu())
+init_weight<- mx.init.create(initializer_Xavier, shape.array = shapes$arg.shapes, ctx = mx.cpu())
 ```
 
-Poids initiaux de la dernière couche: 
+Paramètres initiaux de la première couche: 
 
 ```{r, echo=FALSE}
-as.array(init_weight$final_weight)
+as.array(init_weight$fc_1_weight)
 ```
+
+
+## Exécuteur
+
+```{r}
+devices<- list(mx.gpu(0), mx.gpu(1))
+```
+
+
+![](data/multi_device_execution.png)
+
+Crédit: [mxnet.io](http://mxnet.io/architecture/note_engine.html)
 
 
 ## Exemple - Régression avec MLP
+
+```{r, echo=FALSE}
+devices<- list(mx.cpu())
+```
+
 
 ```{r, echo=TRUE}
 model_reg<- mx.model.FeedForward.create(symbol = perte, 
                                         num.round = 5, 
                                         X = train_iter,
                                         eval.data = eval_iter,
-                                        ctx = mx.cpu(),
+                                        ctx = devices,
                                         optimizer = optimizer_adadelta,
                                         eval.metric = mx.metric.rmse, 
                                         initializer = initializer_uniform,
                                         epoch.end.callback = mx.callback.log.train.metric(1),
                                         verbose = TRUE)
 ```
+```{r, include=FALSE}
+mx.model.save(model = model_reg, prefix = "model_reg", iteration = 5)
+```
+
 
 
 ##Réutilisation de modèles pré-entraînés
@@ -243,13 +254,24 @@ Exemple: Chat vs Chien avec Resnet [Microsoft 2015](https://arxiv.org/abs/1512.0
 Une collection de modèles pré-entraînées est disponible dans le [zoo](http://mxnet.io/model_zoo/index.html)
 
 
-
 ## Analyse de langage avec CNN
 
 ![](data/text_cnn_50.png)
 
 Crédit: [Zang et Wallace](https://arxiv.org/pdf/1510.03820.pdf) et [WildML](http://www.wildml.com/2015/11/understanding-convolutional-neural-networks-for-nlp/)
 
+
+## Analyse de langage avec CNN
+
+Un opérateur clé dans l'analyse de texte ou toute autre donnée à haute dimensionnalité est le embedding. Cet opérateur permet la vectorisation de l'information. 
+
+Pour une analyse des critiques de films sur IMDB, les mots ont été vectorisés en 2 dimensions: 
+
+```{r, echo=TRUE, eval=FALSE}
+embed <- mx.symbol.Embedding(data=data, input_dim=vocab_size, output_dim=2, name="embed")
+```
+
+![](data/word_embedding_35.png)
 
 ## Analyse de langage avec RNN
 
@@ -260,6 +282,15 @@ Les modès récurrents (RNN) forment une famille de modèles ayant mené à des 
 
 Crédit: [Andrej Karpathy](http://karpathy.github.io/2015/05/21/rnn-effectiveness/)
 
+## Analyse de langage avec RNN
+
+L'analyse de sequences apporte des complications par rapport aux modèles conventionnels. Le nombre de mots (oude caractères) par exemple d'une phrase varie d'une observation à l'autre alors que la définition traditionelle d'un modèle symbolique implique une longueur fixeà la séquence. 
+
+Deux trucs viennent à la rescousse:  
+  - Padding  
+  - Bucketing
+
+![](data/bucketing_mxnet_75.jpg)
 
 ## Generative Adversial Network (GAN)
 

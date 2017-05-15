@@ -304,4 +304,31 @@ Le GAN conditionel est une variation permettant de générer un objet ayant des 
 
 Crédit: [Scott Reed](https://github.com/reedscot/icml2016)
 
+## Generative Adversial Network (GAN)
+
+L'implantation sur-mesure de nouvelles architectures nécessite d'aller au coeur des fonctionnalités de MXNet et permet de juger de la flexibilité de la plateforme pour le développement de nouveau modèles.
+
+```{r, eval=FALSE}
+exec_D_back<- mxnet:::mx.symbol.bind(symbol = D_sym, 
+                                     arg.arrays = exec_D$arg.arrays, 
+                                     aux.arrays = exec_D$aux.arrays, 
+                                     grad.reqs = rep("write", length(exec_D$arg.arrays)), 
+                                     ctx = devices)
+
+mx.exec.update.arg.arrays(exec_D_back, 
+                          arg.arrays = list(data=D_data_fake, 
+                                            digit=D_digit_fake, 
+                                            label=mx.nd.array(rep(1, batch_size))),
+                          match.name=TRUE)
+
+mx.exec.forward(exec_D_back, is.train=TRUE)
+mx.exec.backward(exec_D_back)
+
+D_grads<- exec_D_back$ref.grad.arrays$data
+mx.exec.backward(exec_G, out_grads=D_grads)
+
+update_args_G<- updater_G(weight = exec_G$ref.arg.arrays, 
+                          grad = exec_G$ref.grad.arrays)
+mx.exec.update.arg.arrays(exec_G, update_args_G, skip.null=TRUE)
+```
 

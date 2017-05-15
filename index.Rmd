@@ -54,10 +54,9 @@ Le nom MXNet provient d'utilisation mixte de composantes de code impératif et d
 
 - Optimiseur: module qui définit la façon dont les paramètres sont mis à jour à chaque itération. 
 
-- Exécuteur: instance qui exécute les calculs. Il peut y en avoir un seul (CPU) ou plusieurs (multi-GPU).  
-
 - Initialisation: spécifie la manière dont sont assignés les paramètres avant l'exécution de l'optimisation.
 
+- Exécuteur: instance qui exécute les calculs. Il peut y en avoir un seul (CPU) ou plusieurs (multi-GPU).  
 
 ## Architecture
 
